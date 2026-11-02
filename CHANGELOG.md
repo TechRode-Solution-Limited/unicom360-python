@@ -24,7 +24,9 @@ First release, targeting the Unicom360 API contract v0.1.0.
   `SEND_FAILED` on retry-safe calls only), with UTC-minute waits after a 429 and full-jitter
   backoff otherwise; the `auto_reference_ids` option.
 - Webhook verification and parsing (`unicom360.webhooks.verify`, `construct_event`) and the
-  unsigned SMS and email delivery reports (`parse_sms_callback`, `parse_email_callback`).
+  unsigned SMS and email delivery reports (`parse_sms_callback`, `parse_email_callback`). A
+  secret that is `None`, empty or only whitespace raises `ConfigurationError` before any other
+  check, because anyone can forge a signature with an empty key.
 - Opt-in GSM-7 helpers (`unicom360.gsm`).
 - A pluggable transport (`Transport`, `TransportError`) with a standard-library default
   (`UrllibTransport`) that never follows redirects.

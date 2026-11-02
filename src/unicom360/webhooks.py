@@ -26,7 +26,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Final, Protocol, Union
 
-from .errors import SignatureVerificationError, Unicom360Error
+from .errors import ConfigurationError, SignatureVerificationError, Unicom360Error
 from .models import MessageError, _bool, _extra, _id_str, _str
 
 __all__ = [
@@ -118,10 +118,17 @@ def verify(
         now: The current Unix time; defaults to the system clock.
 
     Raises:
+        ConfigurationError: Before any other check, when the secret is ``None``, empty or only
+            whitespace: anyone can forge a signature with an empty key. It is a fault in your
+            configuration, not a failed verification.
         SignatureVerificationError: with ``reason`` ``missing_signature``,
             ``missing_timestamp``, ``invalid_timestamp``, ``malformed_signature``,
             ``timestamp_out_of_tolerance`` or ``signature_mismatch`` (checked in that order).
     """
+    if not isinstance(secret, (str, bytes)) or not secret.strip():
+        raise ConfigurationError(
+            "The webhook secret is empty or only whitespace: set it to the secret from the portal"
+        )
     signature = _header(headers, SIGNATURE_HEADER)
     if not signature:
         raise SignatureVerificationError("missing_signature")
@@ -393,6 +400,7 @@ def construct_event(
     this version does not know (which never raises).
 
     Raises:
+        ConfigurationError: The secret is ``None``, empty or only whitespace.
         SignatureVerificationError: The delivery failed verification.
         Unicom360Error: The body is not a JSON object with a string ``event``.
     """

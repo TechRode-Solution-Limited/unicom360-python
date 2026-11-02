@@ -232,7 +232,7 @@ is a result, never an exception.
 
 ```
 Unicom360Error
-+-- ConfigurationError             no API key, an unusable option
++-- ConfigurationError             no API key, an unusable option, a blank webhook secret
 +-- APIConnectionError             no complete response (.sent, .cause)
 |   +-- APITimeoutError
 +-- APIStatusError                 any other non-2xx, or a 2xx that is not an envelope
@@ -354,6 +354,11 @@ else:  # webhooks.UnknownEvent: an event this version does not know; never raise
 `webhooks.verify(raw_body, headers, secret, tolerance=300)` only verifies. `headers` can be a
 dict, Flask/Werkzeug, Django or Starlette headers, or a list of pairs; names are matched without
 regard to case.
+
+A secret that is `None`, empty or only whitespace, as `str` or `bytes` (an unset environment
+variable, say), raises `ConfigurationError` before any other check, because anyone can forge a
+signature with an empty key. That is a fault in your configuration, not a failed verification:
+let it answer 500, and do not catch it where you answer 401.
 
 **Flask**
 

@@ -11,6 +11,7 @@ from typing import Any
 import pytest
 
 from unicom360 import (
+    ConfigurationError,
     SignatureVerificationError,
     TemplateBody,
     TemplateButton,
@@ -25,8 +26,8 @@ from unicom360 import (
 SECRET = "krISEvfh1iUWHg5sdWQd0ZnOvE6D6mrCsuFLNEuhGfI"
 
 
-def signed(body: bytes, timestamp: int) -> dict[str, str]:
-    digest = hmac.new(SECRET.encode(), f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
+def signed(body: bytes, timestamp: int, key: bytes = SECRET.encode()) -> dict[str, str]:
+    digest = hmac.new(key, f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
     return {
         "X-Unicom360-Timestamp": str(timestamp),
         "X-Unicom360-Signature": f"sha256={digest}",
@@ -86,6 +87,50 @@ def test_timestamp_beyond_int64_is_out_of_tolerance() -> None:
 def test_secret_as_bytes() -> None:
     body = b"{}"
     webhooks.verify(body, signed(body, 1000), SECRET.encode(), now=1000)
+
+
+BLANK_SECRETS = ["", " ", "   ", "\t", "\r\n", " \t\r\n ", b"", b" ", b"\t", b"\r\n"]
+
+
+@pytest.mark.parametrize("blank", BLANK_SECRETS)
+def test_blank_secret_refuses_a_request_signed_with_that_key(blank: str | bytes) -> None:
+    # Anyone can compute this signature, so it must never verify.
+    body = b'{"event":"webhook.test","data":{}}'
+    key = blank if isinstance(blank, bytes) else blank.encode()
+    forged = signed(body, 1000, key)
+    with pytest.raises(ConfigurationError) as caught:
+        webhooks.verify(body, forged, blank, now=1000)
+    assert not isinstance(caught.value, SignatureVerificationError)
+    assert not hasattr(caught.value, "reason")
+    with pytest.raises(ConfigurationError):
+        webhooks.construct_event(body, forged, blank, now=1000)
+
+
+@pytest.mark.parametrize("blank", BLANK_SECRETS)
+def test_blank_secret_is_refused_before_any_header_check(blank: str | bytes) -> None:
+    with pytest.raises(ConfigurationError):
+        webhooks.verify(b"{}", {}, blank)
+    with pytest.raises(ConfigurationError):
+        webhooks.construct_event(b"{}", {}, blank)
+
+
+def test_unset_secret_is_a_configuration_error() -> None:
+    unset: Any = None  # os.environ.get("UNICOM360_WEBHOOK_SECRET")
+    with pytest.raises(ConfigurationError):
+        webhooks.verify(b"{}", {}, unset)
+    with pytest.raises(ConfigurationError):
+        webhooks.construct_event(b"{}", {}, unset)
+
+
+@pytest.mark.parametrize("padded", [f" {SECRET}\n", f" {SECRET}\n".encode()])
+def test_secret_is_used_exactly_as_given(padded: str | bytes) -> None:
+    body = b"{}"
+    key = padded if isinstance(padded, bytes) else padded.encode()
+    headers = signed(body, 1000, key)
+    webhooks.verify(body, headers, padded, now=1000)
+    with pytest.raises(SignatureVerificationError) as caught:
+        webhooks.verify(body, headers, SECRET, now=1000)
+    assert caught.value.reason == "signature_mismatch"
 
 
 def test_template_builders() -> None:

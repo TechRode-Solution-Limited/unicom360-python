@@ -94,7 +94,7 @@ class Unicom360Error(Exception):
 
 
 class ConfigurationError(Unicom360Error):
-    """The client's configuration is unusable (no API key, a bad ``base_url``, ...)."""
+    """The configuration is unusable (no API key, a bad ``base_url``, a blank webhook secret)."""
 
     type = "configuration_error"
 
