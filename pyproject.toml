@@ -1,0 +1,112 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "unicom360"
+dynamic = ["version"]
+description = "Official Python SDK for the Unicom360 SMS, email and WhatsApp API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Techrode Solutions Limited", email = "info@techrode.co" }]
+keywords = ["unicom360", "sms", "email", "whatsapp", "messaging", "api", "sdk", "zambia"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Communications",
+    "Topic :: Communications :: Email",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://unicom360.com"
+Documentation = "https://unicom360.com/docs"
+Repository = "https://github.com/TechRode-Solution-Limited/unicom360-python"
+Issues = "https://github.com/TechRode-Solution-Limited/unicom360-python/issues"
+Changelog = "https://github.com/TechRode-Solution-Limited/unicom360-python/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+    "ruff>=0.15",
+    "mypy>=1.15",
+    "build>=1.2",
+    "twine>=6",
+    # Only for type-checking and exercising the webhook examples in examples/.
+    "flask>=3",
+    "fastapi>=0.115",
+    "httpx>=0.27",
+]
+
+[tool.hatch.version]
+path = "src/unicom360/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/unicom360"]
+
+[tool.hatch.build.targets.sdist]
+# The conformance fixtures stay in the repository, never in a published artifact.
+include = [
+    "/src/unicom360",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers -m 'not contract'"
+markers = [
+    "contract: runs every operation against a Prism mock of openapi.yaml (needs Prism on UNICOM360_PRISM_URL)",
+]
+xfail_strict = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests", "examples"]
+extend-exclude = ["tests/conformance"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "N", "C4", "PT", "RET", "PIE"]
+ignore = [
+    # The GSM-7 charset and its tests hold Greek capitals and typographic quotes on purpose.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["unicom360", "tests"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_unreachable = true
+files = ["src", "tests", "examples"]
+exclude = ["tests/conformance/"]
+
+[[tool.mypy.overrides]]
+# Django ships no type information; the example is still checked for its use of this SDK.
+module = ["django", "django.*"]
+ignore_missing_imports = true

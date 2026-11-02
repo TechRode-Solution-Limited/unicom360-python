@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . --group dev
+
+      - name: ruff format
+        run: ruff format --check
+
+      - name: ruff check
+        run: ruff check
+
+      - name: mypy --strict (src, tests and examples)
+        run: mypy
+
+      - name: No em dash characters
+        run: |
+          if grep -rn --exclude-dir=.git $'\xe2\x80\x94' . ; then
+            echo "Em dash characters found above: rewrite those sentences." >&2
+            exit 1
+          fi
+
+  test:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . --group dev
+
+      - name: Unit tests and the conformance suite
+        run: pytest
+
+  contract:
+    name: Contract (Prism mock of openapi.yaml)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the contract tag the fixtures were vendored from
+        id: contract
+        run: echo "tag=$(sed -n 's/^tag=//p' tests/conformance/VERSION)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: TechRode-Solution-Limited/unicom360-openapi
+          ref: ${{ steps.contract.outputs.tag }}
+          path: .openapi
+
+      - name: Start Prism
+        run: |
+          docker run -d --name prism -p 4011:4010 -v "$PWD/.openapi:/spec:ro" \
+            stoplight/prism:5 mock -h 0.0.0.0 --multiprocess=false /spec/openapi.yaml
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4011/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs prism
+          exit 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . --group dev
+
+      - name: Every operation against Prism
+        env:
+          UNICOM360_PRISM_URL: http://127.0.0.1:4011
+        run: pytest -m contract
+
+  build:
+    name: Build and check the package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check --strict dist/*
+
+      - name: Fixtures, tests and examples stay out of the artifacts
+        run: |
+          listing=$( (python -m zipfile -l dist/*.whl; tar -tzf dist/*.tar.gz) )
+          echo "$listing"
+          if echo "$listing" | grep -E 'conformance|tests/|examples/|\.github'; then
+            echo "The artifacts above must not ship these files." >&2
+            exit 1
+          fi
+
+      - name: The wheel installs into a fresh environment and imports
+        run: |
+          python -m venv /tmp/wheel
+          /tmp/wheel/bin/python -m pip install dist/*.whl
+          cd /tmp
+          /tmp/wheel/bin/python -c "import unicom360, importlib.metadata as m; assert unicom360.__version__ == m.version('unicom360'); print(unicom360.Unicom360(api_key='k'))"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint the workflows
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
