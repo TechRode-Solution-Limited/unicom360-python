@@ -1,0 +1,12 @@
+title = "unicom360-python"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Throwaway webhook secrets in the conformance vectors and the tests that reuse them; not credentials"
+paths = [
+  '''^tests/conformance/''',
+  '''^tests/test_examples\.py$''',
+  '''^tests/test_webhooks_extra\.py$''',
+]
