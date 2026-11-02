@@ -75,12 +75,12 @@ the client's settings for that call.
 
 ```python
 result = client.sms.send(
-    from_="Unicom360",                     # a registered sender ID
-    to="260971234567",                     # one number, or a list
-    message="Your order ZM4821 is ready.", # GSM-7, at most 1,200 characters
-    user_reference_id="order-10421",       # optional: makes the send safe to retry
+    from_="Unicom360",  # a registered sender ID
+    to="260971234567",  # one number, or a list
+    message="Your order ZM4821 is ready.",  # GSM-7, at most 1,200 characters
+    user_reference_id="order-10421",  # optional: makes the send safe to retry
     callback_url="https://example.com/webhooks/unicom360/sms",  # optional
-    source="crm",                          # optional label for your reporting
+    source="crm",  # optional label for your reporting
 )
 print(result.api_reference, [r.status for r in result.results])
 ```
@@ -93,7 +93,7 @@ result = client.email.send(
     to=["jane@example.com", "john@example.com"],
     subject="Your order is confirmed",
     email_body="<p>Thanks for your order. Order ZM4821 is confirmed.</p>",
-    reply_to="support@yourdomain.com",                            # optional
+    reply_to="support@yourdomain.com",  # optional
     callback_url="https://example.com/webhooks/unicom360/email",  # optional
 )
 jane = result.by_address("jane@example.com")
@@ -107,14 +107,14 @@ from unicom360 import TemplateBody, TemplateButton, TemplateHeader, TemplateReci
 result = client.whatsapp.send_template(
     template="order_ready",
     from_="260960123456",  # optional: your WhatsApp number
-    language="en_US",      # optional
+    language="en_US",  # optional
     recipients=[
         TemplateRecipient(
             to="260971234567",
             user_reference_id="inv-42",
             header=TemplateHeader.image("https://example.com/receipts/ZM-4821.png"),
-            body=TemplateBody.of(["Ada", "ZM-4821"]),     # or TemplateBody.named({...})
-            buttons=[TemplateButton.url(0, "ZM-4821")],   # or TemplateButton.quick_reply(...)
+            body=TemplateBody.of(["Ada", "ZM-4821"]),  # or TemplateBody.named({...})
+            buttons=[TemplateButton.url(0, "ZM-4821")],  # or TemplateButton.quick_reply(...)
         ),
         TemplateRecipient(to="260961234567", body=["Joseph", "ZM-4822"]),
     ],
@@ -176,7 +176,8 @@ template instead.
 ```python
 status = client.whatsapp.status(["7c1f3a2e-5b64-4d2f-9a8e-0f1b2c3d4e5f"])  # 1 to 100 ids
 entry = status.by_id("7c1f3a2e-5b64-4d2f-9a8e-0f1b2c3d4e5f")
-print(entry.status if entry else None)  # ACCEPTED, SENT, DELIVERED, READ, FAILED, REJECTED, NOT_FOUND
+if entry is not None:
+    print(entry.status)  # ACCEPTED, SENT, DELIVERED, READ, FAILED, REJECTED, NOT_FOUND
 
 templates = client.whatsapp.templates()
 order_ready = templates.by_name("order_ready", "en_US")
@@ -187,10 +188,10 @@ order_ready = templates.by_name("order_ready", "en_US")
 ```python
 from unicom360 import BundleType
 
-client.balance.get().balance                       # Decimal("1250"): the SMS bundle
-client.balance.get(BundleType.WHATSAPP).balance    # SMS, SMS_INTERNATIONAL, EMAIL, WHATSAPP
-client.balance.all().balances                      # {"SMS": Decimal("1250"), ...}
-client.health().status                             # "ok"; sends no API key
+client.balance.get().balance  # Decimal("1250"): the SMS bundle
+client.balance.get(BundleType.WHATSAPP).balance  # SMS, SMS_INTERNATIONAL, EMAIL, WHATSAPP
+client.balance.all().balances  # {"SMS": Decimal("1250"), ...}
+client.health().status  # "ok"; sends no API key
 ```
 
 Balances are `decimal.Decimal`, exactly as the gateway sent them.
@@ -308,7 +309,7 @@ retries and `max_retry_wait` (default 60 s) any single wait; a 429 wait longer t
 
 ```python
 client = Unicom360(max_retries=4)
-client.balance.get(max_retries=0)   # per call
+client.balance.get(max_retries=0)  # per call
 ```
 
 ## auto_reference_ids
@@ -341,7 +342,7 @@ except SignatureVerificationError as error:
     ...  # answer 401; error.reason says which check failed
 
 if isinstance(event, webhooks.MessageStatusEvent):
-    print(event.data.message_id, event.data.status)   # sent, delivered, read, failed
+    print(event.data.message_id, event.data.status)  # sent, delivered, read, failed
 elif isinstance(event, webhooks.MessageReceivedEvent):
     print(event.data.from_, event.data.type, event.data.text)
 elif isinstance(event, webhooks.TestEvent):
@@ -415,8 +416,8 @@ The reports posted to an SMS or email `callback_url` are **unsigned and never re
 anyone can post one: treat them as hints, and confirm anything that matters another way.
 
 ```python
-report = webhooks.parse_sms_callback(raw_body)     # message_id, status, mobile_number
-report = webhooks.parse_email_callback(raw_body)   # message_id, status, email_address, message
+report = webhooks.parse_sms_callback(raw_body)  # message_id, status, mobile_number
+report = webhooks.parse_email_callback(raw_body)  # message_id, status, email_address, message
 ```
 
 Both raise `Unicom360Error` for a body that is not a JSON object. The email report's numeric
@@ -432,11 +433,11 @@ gateway's answers before you send:
 ```python
 from unicom360 import gsm
 
-gsm.is_gsm7("Hello €")               # True
-gsm.length("Hi\r\nthere")            # 8
-gsm.units("a" * 161)                 # 2
-gsm.non_gsm_characters("It’s")       # [NonGsmCharacter(char='’', index=2)]
-gsm.validate_sms("It’s ready")       # [SmsIssue.NON_GSM]; also EMPTY and TOO_LONG
+gsm.is_gsm7("Hello €")  # True
+gsm.length("Hi\r\nthere")  # 8
+gsm.units("a" * 161)  # 2
+gsm.non_gsm_characters("It’s")  # [NonGsmCharacter(char='’', index=2)]
+gsm.validate_sms("It’s ready")  # [SmsIssue.NON_GSM]; also EMPTY and TOO_LONG
 ```
 
 `SmsIssue` values compare equal to the strings `"empty"`, `"too_long"` and `"non_gsm"`.
@@ -446,16 +447,16 @@ gsm.validate_sms("It’s ready")       # [SmsIssue.NON_GSM]; also EMPTY and TOO_
 
 ```python
 Unicom360(
-    api_key=None,              # default: UNICOM360_API_KEY
-    base_url=None,             # default: UNICOM360_BASE_URL, else https://api.unicom360.com
-    timeout=60.0,              # seconds per attempt, sending to the end of the body
-    connect_timeout=10.0,      # seconds to connect, TLS included
+    api_key=None,  # default: UNICOM360_API_KEY
+    base_url=None,  # default: UNICOM360_BASE_URL, else https://api.unicom360.com
+    timeout=60.0,  # seconds per attempt, sending to the end of the body
+    connect_timeout=10.0,  # seconds to connect, TLS included
     max_retries=2,
     max_retry_wait=60.0,
     auto_reference_ids=False,
-    app_info=None,             # AppInfo("shopsync", "2.3.0", "https://shopsync.example")
-    transport=None,            # see below
-    logger=None,               # default: logging.getLogger("unicom360")
+    app_info=None,  # AppInfo("shopsync", "2.3.0", "https://shopsync.example")
+    transport=None,  # see below
+    logger=None,  # default: logging.getLogger("unicom360")
 )
 ```
 

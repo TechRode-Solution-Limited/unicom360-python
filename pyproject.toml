@@ -74,9 +74,13 @@ minversion = "8.0"
 testpaths = ["tests"]
 addopts = "-ra --strict-markers -m 'not contract'"
 markers = [
-    "contract: runs every operation against a Prism mock of openapi.yaml (needs Prism on UNICOM360_PRISM_URL)",
+    "contract: runs every operation against a Prism mock of openapi.yaml (needs Prism on UNICOM360_CONTRACT_BASE_URL)",
 ]
 xfail_strict = true
+filterwarnings = [
+    # Starlette's test client (examples tests only) warns about its own httpx dependency.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
 
 [tool.ruff]
 line-length = 100

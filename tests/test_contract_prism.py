@@ -3,11 +3,12 @@
 Not part of the default run. Start Prism, then run ``pytest -m contract``::
 
     docker run --rm -p 4011:4010 -v "$OPENAPI_DIR":/spec:ro stoplight/prism:5 \\
-        mock -h 0.0.0.0 --multiprocess=false /spec/openapi.yaml
-    UNICOM360_PRISM_URL=http://127.0.0.1:4011 pytest -m contract
+        mock -h 0.0.0.0 --multiprocess=false --errors /spec/openapi.yaml
+    UNICOM360_CONTRACT_BASE_URL=http://127.0.0.1:4011 pytest -m contract
 
-Prism validates each request against the spec and reports any problem in an
-``sl-violations`` header; one violation fails the test. Every call in ``requests.json`` goes
+Prism validates each request against the spec; with ``--errors`` it answers an invalid request
+with an error status, and it reports every problem in an ``sl-violations`` header. Either one
+fails the test. Every call in ``requests.json`` goes
 through the default urllib transport, and the example Prism answers with must parse into the
 operation's result.
 """
@@ -24,7 +25,7 @@ from unicom360 import Request, Response, Unicom360, UrllibTransport, models, ses
 
 pytestmark = pytest.mark.contract
 
-PRISM_URL = os.environ.get("UNICOM360_PRISM_URL", "http://127.0.0.1:4011")
+PRISM_URL = os.environ.get("UNICOM360_CONTRACT_BASE_URL", "http://127.0.0.1:4011")
 
 RESULT_TYPES = {
     "sms.send": models.SmsSendResult,

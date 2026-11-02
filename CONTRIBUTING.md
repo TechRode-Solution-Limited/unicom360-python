@@ -48,8 +48,8 @@ Prism finds invalid. It is not part of the default run:
 
 ```sh
 docker run --rm -p 4011:4010 -v /path/to/unicom360-openapi:/spec:ro stoplight/prism:5 \
-  mock -h 0.0.0.0 --multiprocess=false /spec/openapi.yaml
-UNICOM360_PRISM_URL=http://127.0.0.1:4011 .venv/bin/pytest -m contract
+  mock -h 0.0.0.0 --multiprocess=false --errors /spec/openapi.yaml
+UNICOM360_CONTRACT_BASE_URL=http://127.0.0.1:4011 .venv/bin/pytest -m contract
 ```
 
 (`--multiprocess=false` avoids a crash of the Prism 5 image at start-up.)
