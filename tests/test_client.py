@@ -488,7 +488,7 @@ def test_logging(caplog: pytest.LogCaptureFixture) -> None:
     client = make_client(
         transport, max_retries=1, fake_time=fake_time, auto_reference_ids=True, random=lambda: 0.25
     )
-    client.sms.send(from_="Unicom360", to="260971234567", message="Your secret code 482193")
+    client.sms.send(from_="Unicom360", to="260971234567", message="Your secret code zq-482193")
 
     records = [r for r in caplog.records if r.name == "unicom360"]
     debug = [r.getMessage() for r in records if r.levelno == logging.DEBUG]
@@ -501,7 +501,7 @@ def test_logging(caplog: pytest.LogCaptureFixture) -> None:
     assert REFERENCE.search(debug[0])
     assert "attempt=1 wait_s=30.250 cause=rate_limit_error" in info[0]
     everything = "\n".join(r.getMessage() for r in records)
-    for secret in (API_KEY, "260971234567", "482193", 'Unicom360"'):
+    for secret in (API_KEY, "260971234567", "zq-482193", 'Unicom360"'):
         assert secret not in everything
 
 
