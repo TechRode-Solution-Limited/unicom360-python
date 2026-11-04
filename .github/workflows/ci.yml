@@ -46,7 +46,8 @@ jobs:
 
   test:
     name: Tests (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    # Pinned: setup-python has no 3.9 build for Ubuntu 26.04, which ubuntu-latest now is.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
